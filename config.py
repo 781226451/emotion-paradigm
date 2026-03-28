@@ -2,7 +2,7 @@
 import os
 
 # ── Window ─────────────────────────────────────────────────────────────────
-SCREEN_SIZE = (1920, 1080)   # pixels
+SCREEN_SIZE = (3840, 2160)   # pixels
 FULL_SCREEN = True
 BACKGROUND_COLOR = (-1, -1, -1)  # black, PsychoPy [-1, 1] range
 FRAME_RATE = 60              # Hz

@@ -31,12 +31,12 @@ def get_participant_info() -> dict:
     """Show a dialog to collect participant info."""
     dlg_fields = {
         "participant_id": "",
-        "session": "1",
+        "num_sessions": "1",
     }
     dlg = gui.DlgFromDict(
         dictionary=dlg_fields,
         title="Participant Info",
-        order=["participant_id", "session"],
+        order=["participant_id", "num_sessions"],
     )
     if not dlg.OK:
         core.quit()
@@ -106,10 +106,14 @@ def play_video(win: visual.Window, filepath: str) -> float:
     onset = core.getTime()
 
     while not mov.isFinished:
-        if event.getKeys(["escape"]):
+        keys = event.getKeys(["escape", "return"])
+        if "escape" in keys:
             mov.stop()
             win.close()
             core.quit()
+        if "return" in keys:
+            mov.stop()
+            break
         mov.draw()
         win.flip()
 
@@ -198,6 +202,7 @@ def run_session(
 
         # ── Video ────────────────────────────────────────────────────────
         video_onset = core.getTime()
+        print(f"file to play: {trial['video_file']}")
         video_duration = play_video(win, trial["video_file"])
 
         # ── Rating (1/2/3) ───────────────────────────────────────────────
@@ -243,14 +248,6 @@ def main():
     win.mouseVisible = False
     logging.console.setLevel(logging.WARNING)
 
-    # ── Build trial list ─────────────────────────────────────────────────
-    try:
-        trials = build_session_trials()
-    except FileNotFoundError as e:
-        win.close()
-        print(f"\nERROR: {e}")
-        sys.exit(1)
-
     # ── Instructions ────────────────────────────────────────────────────
     msg = visual.TextStim(
         win, text="", color="white", height=0.06,
@@ -258,8 +255,18 @@ def main():
     )
     show_text_and_wait(win, msg, config.INSTRUCTION_TEXT)
 
-    # ── Session ──────────────────────────────────────────────────────────
-    run_session(win, trials, participant_info)
+    # ── Sessions loop ────────────────────────────────────────────────────
+    num_sessions = int(participant_info["num_sessions"])
+    for ses_offset in range(num_sessions):
+        session_info = dict(participant_info)
+        session_info["session"] = str(ses_offset + 1)
+        try:
+            trials = build_session_trials()
+        except FileNotFoundError as e:
+            win.close()
+            print(f"\nERROR: {e}")
+            sys.exit(1)
+        run_session(win, trials, session_info)
 
     # ── End ──────────────────────────────────────────────────────────────
     show_text_and_wait(win, msg, config.END_TEXT)
