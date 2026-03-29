@@ -208,7 +208,7 @@ def run_block(
     """Run one block (3 trials) and return collected data rows."""
 
     msg = visual.TextStim(
-        win, text="", color="white", height=0.07,
+        win, text="", color="white", height=config.TEXT_HEIGHT,
         font=config.FONT_NAME, fontFiles=[config.FONT_PATH],
         wrapWidth=1.6, pos=(0, 0),
     )
@@ -288,7 +288,7 @@ def main():
 
     # ── Instructions ────────────────────────────────────────────────────
     msg = visual.TextStim(
-        win, text="", color="white", height=0.06,
+        win, text="", color="white", height=config.TEXT_HEIGHT,
         font=config.FONT_NAME, fontFiles=[config.FONT_PATH], wrapWidth=1.6,
     )
     show_text_and_wait(win, msg, config.INSTRUCTION_TEXT)
@@ -306,8 +306,10 @@ def main():
             sys.exit(1)
         run_block(win, trials, block_info, marker_outlet)
 
-        # ── Inter-block interval (blank screen, 3 s) ──────────────────────
+        # ── Inter-block interval ──────────────────────────────────────────
         if blk_offset < num_blocks - 1:
+            msg.text = config.IBI_TEXT
+            msg.draw()
             win.flip()
             core.wait(config.IBI_DURATION)
 

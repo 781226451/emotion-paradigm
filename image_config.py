@@ -15,6 +15,7 @@ NEUTRAL_IMAGE_DIR  = os.path.join(ASSETS_IMAGE_DIR, "neutral")
 DATA_DIR           = os.path.join(BASE_DIR, "data")
 FONT_NAME          = "Noto Sans SC"
 FONT_PATH          = os.path.join(BASE_DIR, "assets", "fonts", "NotoSansSC-Regular.ttf")
+TEXT_HEIGHT        = 0.07    # text size for all instruction screens (norm units)
 
 # ── Block structure ────────────────────────────────────────────────────────
 # Each block has exactly 3 trials in this fixed order:
@@ -26,7 +27,8 @@ TRIAL_ORDER = ["positive", "negative", "neutral"]
 # ── Trial timing (seconds) ─────────────────────────────────────────────────
 IMAGE_DISPLAY_DURATION = 3.0   # how long each image stays on screen
 ITI_DURATION           = 1.5   # inter-trial interval after rating
-IBI_DURATION           = 3.0   # inter-block interval (blank screen)
+IBI_DURATION           = 3.0   # inter-block interval
+IBI_TEXT               = "请稍作休息……"
 RATING_TIMEOUT         = None  # max wait for rating (None = unlimited)
 RESPONSE_KEYS          = ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
 
