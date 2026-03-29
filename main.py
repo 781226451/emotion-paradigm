@@ -21,8 +21,23 @@ import csv
 from datetime import datetime
 
 from psychopy import visual, core, event, gui, logging
+from pylsl import StreamInfo, StreamOutlet, cf_int8
 
 import config
+
+# 视频条件 → LSL marker 值
+_CONDITION_MARKER = {
+    "positive": config.LSL_MARKER_VIDEO_POSITIVE,
+    "negative": config.LSL_MARKER_VIDEO_NEGATIVE,
+    "neutral":  config.LSL_MARKER_VIDEO_NEUTRAL,
+}
+
+# 评分按键 → LSL marker 值
+_RATING_MARKER = {
+    "1": config.LSL_MARKER_RATING_1,
+    "2": config.LSL_MARKER_RATING_2,
+    "3": config.LSL_MARKER_RATING_3,
+}
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────
@@ -182,6 +197,7 @@ def run_session(
     win: visual.Window,
     trials: list[dict],
     participant_info: dict,
+    marker_outlet: StreamOutlet,
 ) -> list[dict]:
     """Run one session (3 trials) and return collected data rows."""
 
@@ -201,12 +217,15 @@ def run_session(
         show_text_and_wait(win, msg, config.PRE_VIDEO_TEXT)
 
         # ── Video ────────────────────────────────────────────────────────
+        marker_outlet.push_sample([_CONDITION_MARKER[trial["condition"]]])
         video_onset = core.getTime()
         print(f"file to play: {trial['video_file']}")
         video_duration = play_video(win, trial["video_file"])
 
         # ── Rating (1/2/3) ───────────────────────────────────────────────
         rating, rt = collect_rating(win, msg, timeout=config.RATING_TIMEOUT)
+        if rating in _RATING_MARKER:
+            marker_outlet.push_sample([_RATING_MARKER[rating]])
 
         # ── ITI ──────────────────────────────────────────────────────────
         win.flip()
@@ -233,6 +252,17 @@ def run_session(
 
 
 def main():
+    # ── LSL outlet（在输入框之前创建，确保不错过任何早期事件）──────────
+    marker_info = StreamInfo(
+        name=config.LSL_STREAM_NAME,
+        type=config.LSL_STREAM_TYPE,
+        channel_count=1,
+        nominal_srate=0.0,
+        channel_format=cf_int8,
+        source_id=config.LSL_SOURCE_ID,
+    )
+    marker_outlet = StreamOutlet(marker_info)
+
     # ── Participant info ────────────────────────────────────────────────
     participant_info = get_participant_info()
 
@@ -266,7 +296,7 @@ def main():
             win.close()
             print(f"\nERROR: {e}")
             sys.exit(1)
-        run_session(win, trials, session_info)
+        run_session(win, trials, session_info, marker_outlet)
 
     # ── End ──────────────────────────────────────────────────────────────
     show_text_and_wait(win, msg, config.END_TEXT)

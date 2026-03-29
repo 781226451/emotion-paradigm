@@ -62,3 +62,16 @@ END_TEXT = """\
 
 按 空格键 退出。
 """
+
+# ── LSL ────────────────────────────────────────────────────────────────────
+LSL_STREAM_NAME = "EmotionParadigm"
+LSL_STREAM_TYPE = "Markers"
+LSL_SOURCE_ID   = "emotion_paradigm_marker"
+
+# LSL marker 常量
+LSL_MARKER_VIDEO_POSITIVE = 1   # 正性视频开始
+LSL_MARKER_VIDEO_NEGATIVE = 2   # 负性视频开始
+LSL_MARKER_VIDEO_NEUTRAL  = 3   # 中性视频开始
+LSL_MARKER_RATING_1       = 11  # 按键 1（消极）
+LSL_MARKER_RATING_2       = 12  # 按键 2（中性）
+LSL_MARKER_RATING_3       = 13  # 按键 3（积极）
