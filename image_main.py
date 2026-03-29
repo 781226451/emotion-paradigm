@@ -76,7 +76,7 @@ def get_participant_info() -> dict:
     )
     if not dlg.OK:
         core.quit()
-    dlg_fields["date"] = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    dlg_fields["date"] = datetime.now().strftime("%Y%m%d_%H%M%S")
     return dlg_fields
 
 
