@@ -25,13 +25,6 @@ from pylsl import StreamInfo, StreamOutlet, cf_int8
 
 import image_config as config
 
-# 图片条件 → LSL marker 值
-_CONDITION_MARKER = {
-    "positive": config.LSL_MARKER_IMAGE_POSITIVE,
-    "negative": config.LSL_MARKER_IMAGE_NEGATIVE,
-    "neutral":  config.LSL_MARKER_IMAGE_NEUTRAL,
-}
-
 # 评分按键 → LSL marker 值
 _RATING_MARKER = {
     "1": config.LSL_MARKER_RATING_1,
@@ -207,6 +200,8 @@ def run_block(
 ) -> list[dict]:
     """Run one block (3 trials) and return collected data rows."""
 
+    marker_outlet.push_sample([config.LSL_MARKER_BLOCK_ON])
+
     msg = visual.TextStim(
         win, text="", color="white", height=config.TEXT_HEIGHT,
         font=config.FONT_NAME, fontFiles=[config.FONT_PATH],
@@ -223,11 +218,10 @@ def run_block(
         core.wait(3.0)
 
         # ── Image ─────────────────────────────────────────────────────────
-        marker_outlet.push_sample([_CONDITION_MARKER[trial["condition"]]])
+        marker_outlet.push_sample([config.LSL_MARKER_TRIAL_ON])
         image_onset = core.getTime()
         print(f"image to show: {trial['image_file']}")
         image_duration = show_image(win, trial["image_file"])
-        marker_outlet.push_sample([config.LSL_MARKER_IMAGE_OFFSET])
 
         # ── Rating (1~9) ──────────────────────────────────────────────────
         event.clearEvents()

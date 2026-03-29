@@ -69,10 +69,13 @@ LSL_STREAM_TYPE = "Markers"
 LSL_SOURCE_ID   = "image_emotion_paradigm_marker"
 
 # LSL marker 常量
-LSL_MARKER_IMAGE_POSITIVE = 1   # 正性图片出现
-LSL_MARKER_IMAGE_NEGATIVE = 2   # 负性图片出现
-LSL_MARKER_IMAGE_NEUTRAL  = 3   # 中性图片出现
-LSL_MARKER_IMAGE_OFFSET   = 9   # 图片消失
+# Block ON
+LSL_MARKER_BLOCK_ON       = 1   # block 开始
+
+# Trial ON（图片出现）
+LSL_MARKER_TRIAL_ON       = 2   # 图片出现
+
+# 决策值（按键评分）
 LSL_MARKER_RATING_1       = 11  # 按键 1（最积极）
 LSL_MARKER_RATING_2       = 12  # 按键 2
 LSL_MARKER_RATING_3       = 13  # 按键 3
