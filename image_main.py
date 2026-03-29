@@ -25,6 +25,28 @@ from pylsl import StreamInfo, StreamOutlet, cf_int8
 
 import image_config as config
 
+
+# ── Event Logger ────────────────────────────────────────────────────────────
+
+class EventLogger:
+    """CSV event logger: event_type, timestamp_ms, content."""
+
+    FIELDNAMES = ["event_type", "timestamp_ms", "content"]
+
+    def __init__(self, filepath: str):
+        self._filepath = filepath
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        with open(filepath, "w", newline="", encoding="utf-8") as f:
+            csv.DictWriter(f, fieldnames=self.FIELDNAMES).writeheader()
+
+    def log(self, event_type: str, content: str = ""):
+        ts_ms = int(datetime.now().timestamp() * 1000)
+        with open(self._filepath, "a", newline="", encoding="utf-8") as f:
+            csv.DictWriter(f, fieldnames=self.FIELDNAMES).writerow(
+                {"event_type": event_type, "timestamp_ms": ts_ms, "content": content}
+            )
+
+
 # 评分按键 → LSL marker 值
 _RATING_MARKER = {
     "1": config.LSL_MARKER_RATING_1,
@@ -168,28 +190,6 @@ def collect_rating(
             return None, timer.getTime()
 
 
-def save_data(rows: list[dict], participant_info: dict):
-    """Append trial rows to a CSV file in the data directory."""
-    os.makedirs(config.DATA_DIR, exist_ok=True)
-    filename = os.path.join(
-        config.DATA_DIR,
-        f"img_sub-{participant_info['participant_id']}"
-        f"_blk-{participant_info['block']}"
-        f"_{participant_info['date']}.csv",
-    )
-    if not rows:
-        return filename
-
-    fieldnames = list(rows[0].keys())
-    write_header = not os.path.exists(filename)
-    with open(filename, "a", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        if write_header:
-            writer.writeheader()
-        writer.writerows(rows)
-    return filename
-
-
 # ── Main ───────────────────────────────────────────────────────────────────
 
 def run_block(
@@ -197,60 +197,53 @@ def run_block(
     trials: list[dict],
     participant_info: dict,
     marker_outlet: StreamOutlet,
-) -> list[dict]:
-    """Run one block (3 trials) and return collected data rows."""
+    logger: EventLogger,
+):
+    """Run one block (3 trials)."""
 
+    block_num = participant_info["block"]
     marker_outlet.push_sample([config.LSL_MARKER_BLOCK_ON])
+    logger.log("BLOCK_START", f"block={block_num}")
 
     msg = visual.TextStim(
         win, text="", color="white", height=config.TEXT_HEIGHT,
         font=config.FONT_NAME, fontFiles=[config.FONT_PATH],
         wrapWidth=1.6, pos=(0, 0),
     )
-    rows = []
 
     for trial_idx, trial in enumerate(trials):
+
+        logger.log("TRIAL_START", f"block={block_num} trial={trial_idx + 1} condition={trial['condition']}")
 
         # ── Pre-image prompt (auto-advance after 3 s) ─────────────────────
         msg.text = config.PRE_IMAGE_TEXT
         msg.draw()
         win.flip()
+        logger.log("PRE_IMAGE_SHOWN", f"block={block_num} trial={trial_idx + 1}")
         core.wait(3.0)
 
         # ── Image ─────────────────────────────────────────────────────────
         marker_outlet.push_sample([config.LSL_MARKER_TRIAL_ON])
-        image_onset = core.getTime()
+        logger.log("IMAGE_ONSET", f"block={block_num} trial={trial_idx + 1} type={trial['condition']} image={trial['image_name']}")
         print(f"image to show: {trial['image_file']}")
         image_duration = show_image(win, trial["image_file"])
+        logger.log("IMAGE_OFFSET", f"block={block_num} trial={trial_idx + 1} duration={round(image_duration, 4)}s")
 
         # ── Rating (1~9) ──────────────────────────────────────────────────
         event.clearEvents()
+        logger.log("RATING_SHOWN", f"block={block_num} trial={trial_idx + 1}")
         rating, rt = collect_rating(win, msg, timeout=config.RATING_TIMEOUT)
-        if rating in _RATING_MARKER:
-            marker_outlet.push_sample([_RATING_MARKER[rating]])
+        rating_marker = _RATING_MARKER.get(rating)
+        if rating_marker is not None:
+            marker_outlet.push_sample([rating_marker])
+        logger.log("RATING_RESPONSE", f"block={block_num} trial={trial_idx + 1} score={rating} marker={rating_marker} rt={round(rt, 4) if rt is not None else None}s")
 
         # ── ITI ───────────────────────────────────────────────────────────
         win.flip()
+        logger.log("ITI_START", f"block={block_num} trial={trial_idx + 1} duration={config.ITI_DURATION}s")
         core.wait(config.ITI_DURATION)
 
-        # ── Record ────────────────────────────────────────────────────────
-        row = {
-            "participant_id":  participant_info["participant_id"],
-            "block":           participant_info["block"],
-            "trial_index":     trial_idx + 1,
-            "condition":       trial["condition"],
-            "image_name":      trial["image_name"],
-            "image_onset":     round(image_onset, 4),
-            "image_duration":  round(image_duration, 4),
-            "rating":          rating,
-            "rating_rt":       round(rt, 4) if rt is not None else None,
-        }
-        rows.append(row)
-
-        # Stream to disk after each trial (crash-safe)
-        save_data([row], participant_info)
-
-    return rows
+    logger.log("BLOCK_END", f"block={block_num}")
 
 
 def main():
@@ -267,6 +260,15 @@ def main():
 
     # ── Participant info ────────────────────────────────────────────────
     participant_info = get_participant_info()
+
+    # ── Event logger ─────────────────────────────────────────────────────
+    log_filename = os.path.join(
+        config.DATA_DIR,
+        f"log_sub-{participant_info['participant_id']}"
+        f"_{participant_info['date']}.csv",
+    )
+    logger = EventLogger(log_filename)
+    logger.log("EXPERIMENT_START", f"participant={participant_info['participant_id']} num_blocks={participant_info['num_blocks']}")
 
     # ── Window ──────────────────────────────────────────────────────────
     win = visual.Window(
@@ -285,7 +287,9 @@ def main():
         win, text="", color="white", height=config.TEXT_HEIGHT,
         font=config.FONT_NAME, fontFiles=[config.FONT_PATH], wrapWidth=1.6,
     )
+    logger.log("INSTRUCTION_SHOWN", "")
     show_text_and_wait(win, msg, config.INSTRUCTION_TEXT)
+    logger.log("INSTRUCTION_ACKNOWLEDGED", "")
 
     # ── Blocks loop ──────────────────────────────────────────────────────
     num_blocks = int(participant_info["num_blocks"])
@@ -298,16 +302,18 @@ def main():
             win.close()
             print(f"\nERROR: {e}")
             sys.exit(1)
-        run_block(win, trials, block_info, marker_outlet)
+        run_block(win, trials, block_info, marker_outlet, logger)
 
         # ── Inter-block interval ──────────────────────────────────────────
         if blk_offset < num_blocks - 1:
             msg.text = config.IBI_TEXT
             msg.draw()
             win.flip()
+            logger.log("IBI_START", f"after_block={blk_offset + 1} duration={config.IBI_DURATION}s")
             core.wait(config.IBI_DURATION)
 
     # ── End ──────────────────────────────────────────────────────────────
+    logger.log("EXPERIMENT_END", f"participant={participant_info['participant_id']}")
     show_text_and_wait(win, msg, config.END_TEXT)
     win.close()
     core.quit()
