@@ -25,7 +25,8 @@ TEXT_HEIGHT        = 0.07    # text size for all instruction screens (norm units
 TRIAL_ORDER = ["positive", "negative", "neutral"]
 
 # ── Trial timing (seconds) ─────────────────────────────────────────────────
-IMAGE_DISPLAY_DURATION = 3.0   # how long each image stays on screen
+EXPECTED_IMAGE_SIZE    = (800, 600)  # resize images to (width, height) in pixels
+IMAGE_DISPLAY_DURATION = 3.0         # how long each image stays on screen
 ITI_DURATION           = 1.5   # inter-trial interval after rating
 IBI_DURATION           = 3.0   # inter-block interval
 IBI_TEXT               = "请稍作休息……"

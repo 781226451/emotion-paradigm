@@ -127,7 +127,7 @@ def show_image(win: visual.Window, filepath: str) -> float:
     Supports early abort with Escape.
     Returns the actual display duration (s).
     """
-    img = visual.ImageStim(win, image=filepath)
+    img = visual.ImageStim(win, image=filepath, units="pix", size=config.EXPECTED_IMAGE_SIZE)
     onset = core.getTime()
     deadline = onset + config.IMAGE_DISPLAY_DURATION
 
